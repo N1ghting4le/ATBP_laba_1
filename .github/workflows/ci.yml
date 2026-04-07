@@ -159,7 +159,7 @@ jobs:
           path: allure-report/
 
       - name: Deploy Allure report to GitHub Pages
-        if: github.ref == 'refs/heads/master'
+        if: always()
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -185,3 +185,14 @@ jobs:
             echo "❌ Some tests failed. Check Allure report for details."
             exit 1
           fi
+      - name: Send Telegram Notification
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            🧪 Тесты умного отопления завершены!
+            Статус: ${{ env.STATUS }}
+            Ветка: ${{ github.ref }}
+            Коммит: ${{ github.sha }}
+            Отчет Allure (для ветки main): https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/allure-reports/${{ github.run_number }}/
