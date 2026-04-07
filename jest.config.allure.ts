@@ -6,9 +6,7 @@ const presetConfig = createDefaultEsmPreset();
 const config: Config = {
   ...presetConfig,
   testMatch: ["**/tests/**/*.test.ts"],
-  testEnvironment: "node",
-  collectCoverage: true,
-  coverageProvider: "v8",
+  testEnvironment: "allure-jest/node",
 };
 
 export default config;
