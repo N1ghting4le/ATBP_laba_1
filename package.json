@@ -12,13 +12,18 @@
   "scripts": {
     "build": "tsc",
     "start": "npx ts-node src/server.ts",
-    "test:unit": "jest",
-    "test:api": "npm run build && cucumber-js --format summary --format html:report.html",
-    "test:ui": "npx playwright test",
-    "test:ui:headed": "npx playwright test --headed",
+    "test": "jest",
+    "test:unit": "jest --config=jest.config.allure.js",
+    "bdd": "cucumber-js --format summary --format html:report.html",
+    "test:api": "cucumber-js --format json:allure-results/cucumber.json",
+    "test:ui": "npx playwright test --reporter=line,allure-playwright",
+    "test:ui:headed": "npx playwright test --headed --reporter=line,allure-playwright",
     "test:ui:debug": "npx playwright test --debug",
     "test:ui:report": "npx playwright show-report",
-    "test:all": "npm run test:unit && npm run test:api && npm run test:ui"
+    "allure:generate": "allure generate allure-results --clean -o allure-report",
+    "allure:open": "allure open allure-report",
+    "allure:serve": "allure serve allure-results",
+    "test:all": "npm run test:unit && npm run test:api && npm run test:ui && npm run allure:generate"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^12.7.0",
@@ -27,6 +32,9 @@
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.2.2",
+    "allure-commandline": "^2.38.1",
+    "allure-jest": "^3.7.0",
+    "allure-playwright": "^3.7.0",
     "jest": "^30.2.0",
     "supertest": "^7.2.2",
     "ts-jest": "^29.4.6",

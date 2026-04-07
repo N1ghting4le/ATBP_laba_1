@@ -1,0 +1,187 @@
+name: CI Pipeline Smart Heating
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches: [master]
+
+env:
+  ALLURE_RESULTS_DIR: allure-results
+
+jobs:
+  # ============================================
+  # JOB 1: Модульные тесты (Jest + Allure)
+  # ============================================
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests (Jest + Allure)
+        run: npm run test:unit
+
+      - name: Upload Jest Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-jest-${{ matrix.node-version }}
+          path: allure-results/
+
+  # ============================================
+  # JOB 2: API тесты (Cucumber + Allure)
+  # ============================================
+  api-tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start server
+        run: |
+          npm start &
+          npx wait-on http://localhost:3000
+
+      - name: Run API tests (Cucumber + Allure)
+        run: npm run test:api
+
+      - name: Upload Cucumber Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-cucumber-${{ matrix.node-version }}
+          path: allure-results/
+
+  # ============================================
+  # JOB 3: UI тесты (Playwright + Allure)
+  # ============================================
+  ui-tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x]
+        browser: [chromium, firefox, webkit]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install ${{ matrix.browser }} --with-deps
+
+      - name: Start server
+        run: |
+          npm start &
+          npx wait-on http://localhost:3000
+
+      - name: Run UI tests (Playwright + Allure)
+        run: npm run test:ui -- --project=${{ matrix.browser }}
+
+      - name: Upload Playwright Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-playwright-${{ matrix.browser }}-node-${{ matrix.node-version }}
+          path: allure-results/
+
+  # ============================================
+  # JOB 4: Генерация Allure отчёта
+  # ============================================
+  allure-report:
+    runs-on: ubuntu-latest
+    needs: [unit-tests, api-tests, ui-tests]
+    if: always()
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download all Allure results
+        uses: actions/download-artifact@v4
+        with:
+          path: all-allure-results/
+
+      - name: Merge Allure results
+        run: |
+          mkdir -p merged-allure-results
+          find all-allure-results -name "*.json" -exec cp {} merged-allure-results/ \;
+          find all-allure-results -name "*.txt" -exec cp {} merged-allure-results/ \;
+          find all-allure-results -name "*.png" -exec cp {} merged-allure-results/ \;
+
+      - name: Generate Allure report
+        run: |
+          npx allure generate merged-allure-results --clean -o allure-report
+
+      - name: Upload Allure report as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report/
+
+      - name: Deploy Allure report to GitHub Pages
+        if: github.ref == 'refs/heads/master'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./allure-report
+          destination_dir: allure-reports/${{ github.run_number }}
+
+  # ============================================
+  # JOB 5: Уведомление (опционально)
+  # ============================================
+  notify:
+    runs-on: ubuntu-latest
+    needs: [unit-tests, api-tests, ui-tests, allure-report]
+    if: always()
+
+    steps:
+      - name: Check overall status
+        run: |
+          if [ "${{ needs.unit-tests.result }}" = "success" ] && \
+             [ "${{ needs.api-tests.result }}" = "success" ] && \
+             [ "${{ needs.ui-tests.result }}" = "success" ]; then
+            echo "✅ All tests passed!"
+          else
+            echo "❌ Some tests failed. Check Allure report for details."
+            exit 1
+          fi
