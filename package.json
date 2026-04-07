@@ -10,11 +10,9 @@
   "author": "N1ghting4le",
   "main": "index.ts",
   "scripts": {
-    "test": "jest",
-    "test:unit": "jest",
     "build": "tsc",
     "start": "npx ts-node src/server.ts",
-    "bdd": "npm run build && cucumber-js --format summary --format html:report.html",
+    "test:unit": "jest",
     "test:api": "npm run build && cucumber-js --format summary --format html:report.html",
     "test:ui": "npx playwright test",
     "test:ui:headed": "npx playwright test --headed",

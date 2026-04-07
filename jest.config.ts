@@ -5,10 +5,11 @@ const presetConfig = createDefaultEsmPreset();
 
 const config: Config = {
   ...presetConfig,
-  testEnvironment: 'node',
-  extensionsToTreatAsEsm: ['.ts'],
+  roots: ["<rootDir>/tests/"],
+  testEnvironment: "node",
+  extensionsToTreatAsEsm: [".ts"],
   collectCoverage: true,
-  coverageProvider: 'v8',
+  coverageProvider: "v8",
 };
 
 export default config;
