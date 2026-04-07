@@ -6,6 +6,7 @@ import { INVALID_MODE, TEMP_IS_NOT_NUMBER } from "./constants";
 
 const app = express();
 app.use(express.json());
+app.use(express.static("public"));
 
 const PORT = 3000;
 
@@ -35,24 +36,25 @@ app.get("/api/sensors/room-temp", async (req, res) => {
 app.post("/api/heating/control", async (req, res) => {
   try {
     const { desiredTemp, mode } = req.body;
+    const desiredTempNum = Number(desiredTemp);
 
     if (mode !== WorkMode.Eco && mode !== WorkMode.Comfort) {
       throw new Error(INVALID_MODE);
     }
 
-    if (typeof desiredTemp !== "number") {
+    if (isNaN(desiredTempNum) || desiredTemp === "") {
       throw new Error(TEMP_IS_NOT_NUMBER);
     }
 
     const shouldTurnOn = await shouldTurnOnBoiler(
-      desiredTemp,
+      desiredTempNum,
       mode,
       sensorService,
     );
 
     res.status(200).json({
       boilerOn: shouldTurnOn,
-      desiredTemp,
+      desiredTemp: desiredTempNum,
       mode,
     });
   } catch (error: any) {

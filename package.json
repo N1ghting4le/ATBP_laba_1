@@ -11,13 +11,21 @@
   "main": "index.ts",
   "scripts": {
     "test": "jest",
+    "test:unit": "jest",
     "build": "tsc",
     "start": "npx ts-node src/server.ts",
-    "bdd": "npm run build && cucumber-js --format summary --format html:report.html"
+    "bdd": "npm run build && cucumber-js --format summary --format html:report.html",
+    "test:api": "npm run build && cucumber-js --format summary --format html:report.html",
+    "test:ui": "npx playwright test",
+    "test:ui:headed": "npx playwright test --headed",
+    "test:ui:debug": "npx playwright test --debug",
+    "test:ui:report": "npx playwright show-report",
+    "test:all": "npm run test:unit && npm run test:api && npm run test:ui"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^12.7.0",
     "@jest/globals": "^30.2.0",
+    "@playwright/test": "^1.58.2",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.2.2",
