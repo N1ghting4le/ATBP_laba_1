@@ -22,7 +22,8 @@
     "allure:generate": "allure generate allure-results --clean -o allure-report",
     "allure:open": "allure open allure-report",
     "allure:serve": "allure serve allure-results",
-    "test:all": "npm run test:unit && npm run test:api && npm run test:ui && npm run allure:generate"
+    "test:all": "npm run test:unit && npm run test:api && npm run test:ui",
+    "test:all:report": "npm run test:all && npm run allure:generate"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^12.7.0",
