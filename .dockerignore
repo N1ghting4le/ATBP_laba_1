@@ -1,0 +1,11 @@
+node_modules
+allure-results
+allure-report
+playwright-report
+test-results
+coverage
+dist
+.git
+.gitignore
+.github
+report.html

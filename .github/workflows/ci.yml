@@ -12,117 +12,33 @@ env:
 
 jobs:
   # ============================================
-  # JOB 1: Модульные тесты (Jest + Allure)
+  # JOB: Запуск тестов внутри Docker контейнера (Продвинутый уровень)
   # ============================================
-  unit-tests:
+  docker-tests:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x]
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: "npm"
+      - name: Build Docker Image
+        run: docker build -t smart-heating-app .
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run unit tests (Jest + Allure)
-        run: npm run test:unit
-
-      - name: Upload Jest Allure results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-results-jest-${{ matrix.node-version }}
-          path: allure-results/
-
-  # ============================================
-  # JOB 2: API тесты (Cucumber + Allure)
-  # ============================================
-  api-tests:
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [20.x, 22.x]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Start server
+      - name: Run Tests inside Docker
         run: |
-          npm start &
-          npx wait-on http://localhost:3000
+          mkdir -p allure-results
+          docker run --rm \
+            -v ${{ github.workspace }}/allure-results:/app/allure-results \
+            smart-heating-app \
+            bash -c "npm start & npx wait-on http://localhost:3000 && npm run test:all"
 
-      - name: Run API tests (Cucumber + Allure)
-        run: npm run test:api
-
-      - name: Upload Cucumber Allure results
+      - name: Upload Allure results from Docker
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-results-cucumber-${{ matrix.node-version }}
+          name: allure-results-docker
           path: allure-results/
 
   # ============================================
-  # JOB 3: UI тесты (Playwright + Allure)
-  # ============================================
-  ui-tests:
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x]
-        browser: [chromium, firefox, webkit]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browsers
-        run: npx playwright install ${{ matrix.browser }} --with-deps
-
-      - name: Start server
-        run: |
-          npm start &
-          npx wait-on http://localhost:3000
-
-      - name: Run UI tests (Playwright + Allure)
-        run: npm run test:ui -- --project=${{ matrix.browser }}
-
-      - name: Upload Playwright Allure results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-results-playwright-${{ matrix.browser }}-node-${{ matrix.node-version }}
-          path: allure-results/
-
-  # ============================================
-  # JOB 4: Генерация Allure отчёта
+  # JOB: Генерация Allure отчёта
   # ============================================
   allure-report:
     runs-on: ubuntu-latest
@@ -167,7 +83,7 @@ jobs:
           destination_dir: allure-reports/${{ github.run_number }}
 
   # ============================================
-  # JOB 5: Уведомление (опционально)
+  # JOB: Уведомление
   # ============================================
   notify:
     runs-on: ubuntu-latest
